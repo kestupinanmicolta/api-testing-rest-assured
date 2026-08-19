@@ -51,3 +51,5 @@ src/test/resources/features/
 | `/pet/{id}` | GET, DELETE | Consultar/eliminar mascota |
 | `/pet/findByStatus` | GET | Buscar por status |
 | `/pet/inventory` | GET | Inventario |
+
+<!-- lastupdate: 2026-08-18 21:18 -->
