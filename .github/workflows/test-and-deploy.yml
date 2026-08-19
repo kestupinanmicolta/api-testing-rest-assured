@@ -1,0 +1,101 @@
+name: Test & Deploy Report
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: mvn clean test
+      - name: Copy reports
+        run: |
+          mkdir -p public
+          cp -r target/surefire-reports/* public/ 2>/dev/null || true
+          cp -r target/cucumber-reports/* public/ 2>/dev/null || true
+          cp -r target/site/serenity/* public/ 2>/dev/null || true
+          if [ ! -f public/index.html ]; then
+            cat > public/index.html << 'HEREDOC'
+            <!DOCTYPE html>
+            <html lang="es">
+            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+            <title>REST Assured API Report</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+            <style>
+              *{margin:0;padding:0;box-sizing:border-box}
+              body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1e293b}
+              .header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:white;padding:3rem 2rem;text-align:center}
+              .header h1{font-size:1.8rem;margin-bottom:.5rem}
+              .header p{color:#60a5fa}
+              .container{max-width:800px;margin:2rem auto;padding:0 1rem}
+              .card{background:white;border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+              .card h2{font-size:1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+              .card h2 i{color:#10b981}
+              .tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+              .tag{background:#d1fae5;color:#059669;padding:.25rem .6rem;border-radius:6px;font-size:.75rem;font-weight:600}
+              .features{list-style:none}
+              .features li{padding:.4rem 0;font-size:.85rem;color:#475569;display:flex;align-items:center;gap:.5rem}
+              .features li i{color:#10b981;font-size:.7rem}
+              .btn{display:inline-flex;align-items:center;gap:.5rem;background:#0f172a;color:white;padding:.6rem 1.2rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.85rem;margin-top:1rem}
+              .footer{text-align:center;padding:1.5rem;font-size:.75rem;color:#94a3b8}
+            </style></head>
+            <body>
+            <div class="header">
+              <h1><i class="fas fa-plug"></i> REST Assured API Testing</h1>
+              <p>QA Testing Project — API Automation</p>
+            </div>
+            <div class="container">
+              <div class="card">
+                <h2><i class="fas fa-info-circle"></i> Project Overview</h2>
+                <p style="font-size:.85rem;color:#475569;margin-bottom:1rem">API testing with REST Assured and Cucumber BDD against Petstore API. Includes CRUD operations, schema validation, and negative tests.</p>
+                <div class="tags">
+                  <span class="tag">Java</span><span class="tag">REST Assured</span><span class="tag">Cucumber</span>
+                  <span class="tag">BDD</span><span class="tag">Petstore API</span>
+                </div>
+              </div>
+              <div class="card">
+                <h2><i class="fas fa-check-circle"></i> Key Features</h2>
+                <ul class="features">
+                  <li><i class="fas fa-check"></i> BDD scenarios with Gherkin syntax</li>
+                  <li><i class="fas fa-check"></i> CRUD operations testing</li>
+                  <li><i class="fas fa-check"></i> JSON Schema validation</li>
+                  <li><i class="fas fa-check"></i> Negative test cases</li>
+                  <li><i class="fas fa-check"></i> Serenity report integration</li>
+                </ul>
+              </div>
+              <a href="https://github.com/kestupinanmicolta/api-testing-rest-assured" target="_blank" class="btn"><i class="fab fa-github"></i> View Source Code</a>
+            </div>
+            <div class="footer">© 2026 Karen Paola Estupinan Micolta</div>
+            </body></html>
+            HEREDOC
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
