@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REST Assured API Testing - QA Testing Project</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; color: #1e293b; background: #f8fafc; }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            color: #fff; padding: 80px 20px 60px; text-align: center;
+        }
+        .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 8px; }
+        .header .role { font-size: 1.1rem; color: #93c5fd; font-weight: 300; }
+        .container { max-width: 800px; margin: -40px auto 60px; padding: 0 20px; }
+        .card {
+            background: #fff; border-radius: 16px; padding: 40px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08); margin-bottom: 24px;
+        }
+        .card h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 16px; color: #0f172a; }
+        .card p { color: #475569; line-height: 1.7; font-size: 1rem; }
+        .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .tag {
+            background: #eff6ff; color: #3b82f6; padding: 6px 14px;
+            border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+        }
+        .features { list-style: none; padding: 0; }
+        .features li {
+            padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+            display: flex; align-items: flex-start; gap: 10px; color: #475569;
+        }
+        .features li:last-child { border-bottom: none; }
+        .features i { color: #3b82f6; margin-top: 4px; font-size: 0.9rem; }
+        .buttons { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+        .btn {
+            padding: 12px 24px; border-radius: 8px; text-decoration: none;
+            font-weight: 600; font-size: 0.95rem; transition: all 0.2s;
+        }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #f1f5f9; color: #475569; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .footer {
+            text-align: center; padding: 30px 20px; color: #94a3b8;
+            font-size: 0.85rem; border-top: 1px solid #e2e8f0;
+        }
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.8rem; }
+            .card { padding: 24px; }
+            .buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>REST Assured API Testing</h1>
+        <p class="role">QA Testing Project</p>
+    </div>
+    <div class="container">
+        <div class="card">
+            <h2>Project Overview</h2>
+            <p>A BDD-driven API testing framework using REST Assured with Cucumber, targeting the Petstore API. Combines the power of REST Assured's fluent assertions with Cucumber's Gherkin syntax for readable, behavior-focused API test scenarios and comprehensive endpoint validation.</p>
+        </div>
+        <div class="card">
+            <h2>Tech Stack</h2>
+            <div class="tags">
+                <span class="tag">Java</span>
+                <span class="tag">REST Assured</span>
+                <span class="tag">Cucumber</span>
+                <span class="tag">Petstore API</span>
+                <span class="tag">BDD</span>
+                <span class="tag">Maven</span>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Key Features</h2>
+            <ul class="features">
+                <li><i class="fas fa-check-circle"></i> BDD scenarios with Cucumber Gherkin syntax</li>
+                <li><i class="fas fa-check-circle"></i> Fluent API assertions with REST Assured</li>
+                <li><i class="fas fa-check-circle"></i> JSON/XML response validation and schema checks</li>
+                <li><i class="fas fa-check-circle"></i> Petstore API full CRUD operation coverage</li>
+                <li><i class="fas fa-check-circle"></i> Step definition reusability across feature files</li>
+                <li><i class="fas fa-check-circle"></i> Cucumber HTML reports for stakeholder visibility</li>
+            </ul>
+        </div>
+        <div class="buttons">
+            <a href="https://github.com/kestupinanmicolta/api-testing-rest-assured" class="btn btn-primary" target="_blank">
+                <i class="fab fa-github"></i> View Source Code
+            </a>
+            <a href="https://kestupinanmicolta.github.io/cv/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to CV
+            </a>
+        </div>
+    </div>
+    <div class="footer">
+        &copy; 2026 Karen Paola Estupinan Micolta
+    </div>
+</body>
+</html>
