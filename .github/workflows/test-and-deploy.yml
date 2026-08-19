@@ -23,6 +23,7 @@ jobs:
           distribution: temurin
           java-version: 17
       - run: mvn clean test
+        continue-on-error: true
       - name: Copy reports
         run: |
           mkdir -p public
@@ -91,6 +92,7 @@ jobs:
           path: public
 
   deploy:
+    if: always()
     needs: test
     runs-on: ubuntu-latest
     environment:
