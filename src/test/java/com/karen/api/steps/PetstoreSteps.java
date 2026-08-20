@@ -1,114 +1,137 @@
 package com.karen.api.steps;
 
-import com.karen.api.tasks.PetstoreApi;
-import io.cucumber.java.es.*;
+import com.karen.api.tasks.JsonPlaceholderApi;
+import io.cucumber.java.en.*;
 import io.restassured.response.Response;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 public class PetstoreSteps {
 
-    private final PetstoreApi api = new PetstoreApi();
+    private final JsonPlaceholderApi api = new JsonPlaceholderApi();
     private Response response;
-    private int createdPetId;
 
-    @Dado("que la API base está configurada en {string}")
+    @Given("que la API base está configurada en {string}")
     public void configurarApi(String baseUrl) {
-        // La URL base ya está configurada en PetstoreApi
     }
 
-    @Cuando(/^creo una mascota con nombre "([^"]*)", status "([^"]*)" y nombre de categoría "([^"]*)"$/)
-    public void crearMascota(String name, String status, String categoryName) {
-        response = api.crearMascota(name, status, categoryName);
-        createdPetId = api.getLastCreatedPetId();
+    @When("creo un post con title {string} y body {string} y userId {int}")
+    public void crearPost(String title, String body, int userId) {
+        response = api.crearPost(title, body, userId);
     }
 
-    @Cuando(/^creo una mascota con nombre "([^"]*)" y status "([^"]*)"$/)
-    public void crearMascotaSimple(String name, String status) {
-        response = api.crearMascota(name, status, "Default");
-        createdPetId = api.getLastCreatedPetId();
+    @When("consulto el post con ID {int}")
+    public void consultarPost(int postId) {
+        response = api.consultarPost(postId);
     }
 
-    @Dado(/^que tengo una mascota creada con nombre "([^"]*)"$/)
-    public void tenerMascotaCreada(String name) {
-        response = api.crearMascota(name, "available", "Test");
-        createdPetId = api.getLastCreatedPetId();
+    @Given("que existe un post con ID {int}")
+    public void existePost(int postId) {
+        response = api.consultarPost(postId);
     }
 
-    @Cuando(/^consulto la mascota por su ID$/)
-    public void consultarMascotaPorId() {
-        response = api.consultarMascota(createdPetId);
+    @When("actualizo el post con title {string} y body {string}")
+    public void actualizarPost(String title, String body) {
+        response = api.actualizarPost(1, title, body);
     }
 
-    @Cuando(/^actualizo la mascota con nombre "([^"]*)" y status "([^"]*)"$/)
-    public void actualizarMascota(String name, String status) {
-        response = api.actualizarMascota(createdPetId, name, status);
+    @When("elimino el post por ID {int}")
+    public void eliminarPost(int postId) {
+        response = api.eliminarPost(postId);
     }
 
-    @Cuando(/^elimino la mascota por su ID$/)
-    public void eliminarMascota() {
-        response = api.eliminarMascota(createdPetId);
+    @When("consulto todos los posts")
+    public void consultarTodosPosts() {
+        response = api.consultarTodosPosts();
     }
 
-    @Dado(/^que consulto mascotas por status "([^"]*)"$/)
-    public void consultarPorStatus(String status) {
-        response = api.consultarPorStatus(status);
+    @When("consulto posts del usuario {int}")
+    public void consultarPostsPorUsuario(int userId) {
+        response = api.consultarPostsPorUsuario(userId);
     }
 
-    @Dado(/^que consulto la mascota con ID (\d+)$/)
-    public void consultarMascotaPorIdEspecifico(int petId) {
-        response = api.consultarMascota(petId);
+    @When("consulto comentarios del post {int}")
+    public void consultarComentarios(int postId) {
+        response = api.consultarComentarios(postId);
     }
 
-    @Dado(/^que consulto el inventario de mascotas$/)
-    public void consultarInventario() {
-        response = api.consultarInventario();
+    @When("consulto el usuario con ID {int}")
+    public void consultarUsuario(int userId) {
+        response = api.consultarUsuario(userId);
     }
 
-    @Entonces(/^la mascota es creada exitosamente con id$/)
+    @Then("el post es creado exitosamente")
     public void validarCreacion() {
-        assertThat(response.statusCode(), is(200));
+        assertThat(response.statusCode(), is(201));
         assertThat(response.jsonPath().getInt("id"), is(greaterThan(0)));
     }
 
-    @Entonces(/^la mascota tiene nombre "([^"]*)"$/)
-    public void validarNombre(String expectedName) {
-        assertThat(response.jsonPath().getString("name"), is(expectedName));
+    @Then("el post tiene title no vacío")
+    public void validarTitleNoVacio() {
+        assertThat(response.jsonPath().getString("title"), is(not(emptyOrNullString())));
     }
 
-    @Entonces(/^el status code es (\d+)$/)
+    @Then("el post tiene title {string}")
+    public void validarTitle(String expectedTitle) {
+        assertThat(response.jsonPath().getString("title"), is(expectedTitle));
+    }
+
+    @Then("el status code es {int}")
     public void validarStatusCode(int expectedStatus) {
         assertThat(response.statusCode(), is(expectedStatus));
     }
 
-    @Entonces(/^la respuesta contiene al menos (\d+) mascota$/)
-    public void validarCantidadMinima(int minCount) {
-        assertThat(response.jsonPath().getList("$").size(), is(greaterThanOrEqualTo(minCount)));
+    @Then("la respuesta contiene al menos {int} post")
+    public void validarMinimoPosts(int minCount) {
+        List<?> posts = response.jsonPath().getList("$");
+        assertThat(posts.size(), is(greaterThanOrEqualTo(minCount)));
     }
 
-    @Entonces(/^cada mascota tiene status "([^"]*)"$/)
-    public void validarStatusMascotas(String expectedStatus) {
-        response.jsonPath().getList("$", Map.class).forEach(pet -> {
-            assertThat(pet.get("status"), is(expectedStatus));
-        });
-    }
-
-    @Entonces(/^la respuesta contiene los campos: (.*)$/)
-    public void validarCampos(String fields) {
-        String[] fieldList = fields.split(", ");
-        for (String field : fieldList) {
-            assertThat(response.jsonPath().getMap("$").containsKey(field), is(true));
+    @Then("cada post tiene campos válidos")
+    public void validarCamposPosts() {
+        List<Map<String, Object>> posts = response.jsonPath().getList("$");
+        for (Map<String, Object> post : posts) {
+            assertThat(post.containsKey("id"), is(true));
+            assertThat(post.containsKey("title"), is(true));
+            assertThat(post.containsKey("body"), is(true));
+            assertThat(post.containsKey("userId"), is(true));
         }
     }
 
-    @Entonces(/^el campo name no está vacío$/)
-    public void validarCampoName() {
-        assertThat(response.jsonPath().getString("name"), is(not(emptyOrNullString())));
+    @Then("cada post tiene userId {int}")
+    public void validarUserId(int expectedUserId) {
+        List<Map<String, Object>> posts = response.jsonPath().getList("$");
+        for (Map<String, Object> post : posts) {
+            assertThat(post.get("userId"), is(expectedUserId));
+        }
     }
 
-    @Entonces(/^la respuesta contiene conteo por status$/)
-    public void validarInventario() {
-        assertThat(response.jsonPath().getMap("$").size(), is(greaterThan(0)));
+    @Then("el post contiene los campos: {word}, {word}, {word}, {word}")
+    public void validarCampos(String f1, String f2, String f3, String f4) {
+        Map<String, Object> post = response.jsonPath().getMap("$");
+        assertThat(post.containsKey(f1), is(true));
+        assertThat(post.containsKey(f2), is(true));
+        assertThat(post.containsKey(f3), is(true));
+        assertThat(post.containsKey(f4), is(true));
+    }
+
+    @Then("el campo title no está vacío")
+    public void validarCampoTitle() {
+        assertThat(response.jsonPath().getString("title"), is(not(emptyOrNullString())));
+    }
+
+    @Then("la respuesta contiene al menos {int} comentario")
+    public void validarMinimoComentarios(int minCount) {
+        List<?> comments = response.jsonPath().getList("$");
+        assertThat(comments.size(), is(greaterThanOrEqualTo(minCount)));
+    }
+
+    @Then("el usuario tiene name no vacío")
+    public void validarUserName() {
+        assertThat(response.jsonPath().getString("name"), is(not(emptyOrNullString())));
     }
 }

@@ -17,8 +17,11 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  test:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -28,59 +31,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install -g allure-commandline
       - name: Run Maven Tests
         continue-on-error: true
-        run: mvn clean test -Dallure.results.directory=target/allure-results
-      - name: Generate Allure Report
+        run: mvn clean test
+      - name: Generate HTML Report
         if: always()
-        run: |
-          mkdir -p public
-          if [ -d target/allure-results ] && [ "$(ls -A target/allure-results 2>/dev/null)" ]; then
-            allure generate target/allure-results --clean -o public
-          else
-            # Fallback: build HTML from surefire XML reports
-            mkdir -p public
-            if [ -d target/surefire-reports ]; then
-              echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>REST Assured Test Report</title>' > public/index.html
-              echo '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">' >> public/index.html
-              echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">' >> public/index.html
-              echo '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;background:#f1f5f9;color:#1e293b}.header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:white;padding:2rem;text-align:center}.header h1{font-size:1.5rem}.header p{color:#60a5fa;font-size:.9rem}.container{max-width:800px;margin:2rem auto;padding:0 1rem}.card{background:white;border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,.08)}.card h2{font-size:1rem;margin-bottom:.75rem;color:#0f172a}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem}.stat{text-align:center;padding:1rem;border-radius:8px}.stat.pass{background:#d1fae5;color:#059669}.stat.fail{background:#fee2e2;color:#dc2626}.stat.total{background:#eff6ff;color:#3b82f6}.stat .num{font-size:1.5rem;font-weight:800}.stat .label{font-size:.7rem;text-transform:uppercase;font-weight:600}.btn{display:inline-flex;align-items:center;gap:.5rem;background:#0f172a;color:white;padding:.6rem 1.2rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.85rem;margin-top:.5rem}.footer{text-align:center;padding:1.5rem;font-size:.75rem;color:#94a3b8}</style></head>' >> public/index.html
-              echo '<body>' >> public/index.html
-              echo '<div class="header"><h1><i class="fas fa-plug"></i> REST Assured API Testing</h1><p>Test Execution Report</p></div>' >> public/index.html
-              echo '<div class="container">' >> public/index.html
-              echo '<div class="card"><h2><i class="fas fa-chart-bar"></i> Test Summary</h2>' >> public/index.html
-              echo '<div class="summary">' >> public/index.html
-              total=$(grep -r 'tests=' target/surefire-reports/*.xml 2>/dev/null | sed 's/.*tests="\([0-9]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
-              failures=$(grep -r 'failures=' target/surefire-reports/*.xml 2>/dev/null | sed 's/.*failures="\([0-9]*\)".*/\1/' | paste -sd+ | bc 2>/dev/null || echo "0")
-              echo "<div class='stat total'><div class='num'>$total</div><div class='label'>Total</div></div>" >> public/index.html
-              echo "<div class='stat pass'><div class='num'>$((total - failures))</div><div class='label'>Passed</div></div>" >> public/index.html
-              echo "<div class='stat fail'><div class='num'>$failures</div><div class='label'>Failed</div></div>" >> public/index.html
-              echo '</div></div>' >> public/index.html
-              echo '<div class="card"><h2><i class="fas fa-info-circle"></i> Details</h2>' >> public/index.html
-              echo '<p style="font-size:.85rem;color:#475569">Test results from Maven Surefire. Full XML reports available in the repository.</p></div>' >> public/index.html
-              echo '<a href="https://github.com/kestupinanmicolta/api-testing-rest-assured" class="btn"><i class="fab fa-github"></i> View Source Code</a>' >> public/index.html
-              echo '</div><div class="footer">2026 Karen Paola Estupinan Micolta</div></body></html>' >> public/index.html
-            else
-              echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>REST Assured Report</title>' > public/index.html
-              echo '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">' >> public/index.html
-              echo '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;background:#f1f5f9;color:#1e293b;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{background:white;border-radius:12px;padding:2rem;box-shadow:0 4px 12px rgba(0,0,0,.1);text-align:center;max-width:400px}.card h1{font-size:1.5rem;margin-bottom:.5rem;color:#0f172a}.card p{color:#64748b;margin-bottom:1rem}.btn{display:inline-block;background:#3b82f6;color:white;padding:.6rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600}</style></head>' >> public/index.html
-              echo '<body><div class="card"><h1>REST Assured API</h1><p>Tests executed successfully.</p>' >> public/index.html
-              echo '<a href="https://github.com/kestupinanmicolta/api-testing-rest-assured" class="btn">View Source</a></div></body></html>' >> public/index.html
-            fi
-          fi
+        run: node generate_report.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
-
-  deploy:
-    needs: test
-    if: always()
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

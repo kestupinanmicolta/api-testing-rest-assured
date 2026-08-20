@@ -1,0 +1,6 @@
+target/
+allure-results/
+public/
+node_modules/
+package-lock.json
+*.class
