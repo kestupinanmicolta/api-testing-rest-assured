@@ -1,5 +1,6 @@
 package com.karen.api.tasks;
 
+import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
@@ -15,6 +16,7 @@ public class JsonPlaceholderApi {
             title, body, userId
         );
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
                 .contentType(ContentType.JSON)
                 .body(jsonBody)
@@ -26,6 +28,7 @@ public class JsonPlaceholderApi {
 
     public Response consultarPost(int postId) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
             .when()
                 .get("/posts/{id}", postId)
@@ -39,6 +42,7 @@ public class JsonPlaceholderApi {
             title, body
         );
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
                 .contentType(ContentType.JSON)
                 .body(jsonBody)
@@ -50,6 +54,7 @@ public class JsonPlaceholderApi {
 
     public Response eliminarPost(int postId) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
             .when()
                 .delete("/posts/{id}", postId)
@@ -59,6 +64,7 @@ public class JsonPlaceholderApi {
 
     public Response consultarTodosPosts() {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
             .when()
                 .get("/posts")
@@ -68,6 +74,7 @@ public class JsonPlaceholderApi {
 
     public Response consultarPostsPorUsuario(int userId) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
             .when()
                 .get("/posts?userId={userId}", userId)
@@ -77,6 +84,7 @@ public class JsonPlaceholderApi {
 
     public Response consultarComentarios(int postId) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
             .when()
                 .get("/posts/{id}/comments", postId)
@@ -86,6 +94,7 @@ public class JsonPlaceholderApi {
 
     public Response consultarUsuario(int userId) {
         return given()
+                .filter(new AllureRestAssured())
                 .baseUri(BASE_URL)
             .when()
                 .get("/users/{id}", userId)
