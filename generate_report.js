@@ -14,6 +14,7 @@ const scenarios = JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'));
 
 let passed = 0, failed = 0, skipped = 0;
 const rows = [];
+const details = [];
 
 for (const feature of scenarios) {
   for (const el of feature.elements || []) {
@@ -23,12 +24,24 @@ for (const feature of scenarios) {
     let scenarioSkipped = false;
     let duration = 0;
     let error = '';
+    let requestResponse = '';
 
     for (const step of steps) {
       const result = step.result || {};
       if (result.status === 'passed') duration += result.duration || 0;
       else if (result.status === 'failed') { scenarioFailed = true; error = result.error_message || ''; duration += result.duration || 0; }
       else if (result.status === 'skipped') scenarioSkipped = true;
+
+      if (step.embeddings) {
+        for (const emb of step.embeddings) {
+          if (emb.mime_type === 'text/plain' && emb.data) {
+            const decoded = Buffer.from(emb.data, 'base64').toString('utf8');
+            if (decoded.includes('=== REQUEST ===')) {
+              requestResponse = decoded;
+            }
+          }
+        }
+      }
     }
 
     if (scenarioFailed) failed++;
@@ -38,8 +51,33 @@ for (const feature of scenarios) {
     const status = scenarioFailed ? 'FAILED' : scenarioSkipped ? 'SKIPPED' : 'PASSED';
     const badgeClass = scenarioFailed ? 'badge-failed' : scenarioSkipped ? 'badge-skipped' : 'badge-passed';
     const durationMs = Math.round(duration / 1000000);
-    rows.push(`<tr><td>${feature.name || 'Feature'}</td><td>${el.name || 'Scenario'}</td><td><span class="badge ${badgeClass}">${status}</span></td><td>${durationMs}ms</td>${error ? `<td class="trace"><pre>${error.substring(0, 500)}</pre></td>` : '<td></td>'}</tr>`);
+    const id = `scenario-${passed + failed + skipped}`;
+    const hasDetails = requestResponse.length > 0;
+
+    rows.push(`<tr class="${hasDetails ? 'clickable' : ''}" ${hasDetails ? `onclick="toggleDetails('${id}')"` : ''}>
+      <td>${feature.name || 'Feature'}</td>
+      <td>${el.name || 'Scenario'}</td>
+      <td><span class="badge ${badgeClass}">${status}</span></td>
+      <td>${durationMs}ms</td>
+      <td>${error ? `<span class="error-text">${error.substring(0, 100)}...</span>` : ''}</td>
+      <td>${hasDetails ? '<span class="expand-icon">+</span>' : ''}</td>
+    </tr>`);
+
+    if (hasDetails) {
+      details.push(`<div id="${id}" class="details-panel" style="display:none">
+        <pre>${formatRequestResponse(requestResponse)}</pre>
+      </div>`);
+    }
   }
+}
+
+function formatRequestResponse(text) {
+  return text
+    .replace(/=== REQUEST ===/g, '<span class="section-request">=== REQUEST ===</span>')
+    .replace(/=== RESPONSE ===/g, '<span class="section-response">=== RESPONSE ===</span>')
+    .replace(/(Method: )(\w+)/g, '$1<span class="method">$2</span>')
+    .replace(/(URL: )(https?:\/\/\S+)/g, '$1<span class="url">$2</span>')
+    .replace(/(Status: )(\d+)/g, '$1<span class="status-code">$2</span>');
 }
 
 const total = passed + failed + skipped;
@@ -66,15 +104,31 @@ table{width:100%;border-collapse:collapse;background:#161b22;border-radius:8px;o
 th{background:#21262d;padding:12px 16px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#8b949e;border-bottom:1px solid #30363d}
 td{padding:12px 16px;border-bottom:1px solid #21262d;font-size:14px}
 tr:hover{background:#1c2128}
+tr.clickable{cursor:pointer}
 .badge{padding:4px 12px;border-radius:16px;font-size:12px;font-weight:600;display:inline-block}
 .badge-passed{background:#238636;color:#fff}
 .badge-failed{background:#da3633;color:#fff}
 .badge-skipped{background:#9e6a03;color:#fff}
-.trace{max-width:400px;overflow:hidden}
-.trace pre{font-size:11px;color:#f85149;white-space:pre-wrap;word-break:break-all}
+.error-text{color:#f85149;font-size:12px}
+.expand-icon{color:#58a6ff;font-weight:bold;font-size:16px}
+.details-panel{margin:8px 0 16px 0;padding:16px;background:#0d1117;border:1px solid #30363d;border-radius:8px}
+.details-panel pre{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-all}
+.section-request{color:#3fb950;font-weight:bold;display:block;margin-bottom:8px}
+.section-response{color:#58a6ff;font-weight:bold;display:block;margin-top:16px;margin-bottom:8px}
+.method{color:#d29922;font-weight:bold}
+.url{color:#a5d6ff}
+.status-code{color:#3fb950;font-weight:bold}
 footer{padding:24px 32px;text-align:center;color:#484f58;font-size:12px;border-top:1px solid #30363d}
 </style></head>
 <body>
+<script>
+function toggleDetails(id) {
+  const panel = document.getElementById(id);
+  if (panel) {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+}
+</script>
 <div class="header"><h1>API Testing Report - Rest Assured</h1><p>JSONPlaceholder API | Cucumber + REST Assured | ${new Date().toISOString()}</p></div>
 <div class="stats">
 <div class="stat total"><div class="num">${total}</div><div class="label">Total</div></div>
@@ -83,8 +137,9 @@ footer{padding:24px 32px;text-align:center;color:#484f58;font-size:12px;border-t
 <div class="stat skipped"><div class="num">${skipped}</div><div class="label">Skipped</div></div>
 </div>
 <div class="content">
-<table><thead><tr><th>Feature</th><th>Scenario</th><th>Status</th><th>Duration</th><th>Error</th></tr></thead>
+<table><thead><tr><th>Feature</th><th>Scenario</th><th>Status</th><th>Duration</th><th>Error</th><th></th></tr></thead>
 <tbody>${rows.join('\n')}</tbody></table>
+${details.join('\n')}
 </div>
 <footer>QA Portfolio - Karen Paola Estupinan Micolta</footer>
 </body></html>`;
