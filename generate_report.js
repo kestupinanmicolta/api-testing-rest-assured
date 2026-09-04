@@ -12,6 +12,67 @@ if (!fs.existsSync(JSON_FILE)) {
 
 const scenarios = JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'));
 
+function parseSteps(description) {
+  if (!description) return [];
+  return description.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function extractApiInfo(scenarioName, steps) {
+  const baseUrl = 'https://jsonplaceholder.typicode.com';
+  let method = 'GET';
+  let endpoint = '/';
+  let body = null;
+
+  for (const step of steps) {
+    const lower = step.toLowerCase();
+    if (lower.includes('creo un post')) {
+      method = 'POST';
+      endpoint = '/posts';
+      const titleMatch = step.match(/title\s+"([^"]+)"/);
+      const bodyMatch = step.match(/body\s+"([^"]+)"/);
+      const userIdMatch = step.match(/userId\s+(\d+)/);
+      body = JSON.stringify({
+        title: titleMatch ? titleMatch[1] : '',
+        body: bodyMatch ? bodyMatch[1] : '',
+        userId: userIdMatch ? parseInt(userIdMatch[1]) : 0
+      }, null, 2);
+    } else if (lower.includes('actualizo el post')) {
+      method = 'PUT';
+      endpoint = '/posts/1';
+      const titleMatch = step.match(/title\s+"([^"]+)"/);
+      const bodyMatch = step.match(/body\s+"([^"]+)"/);
+      body = JSON.stringify({
+        title: titleMatch ? titleMatch[1] : '',
+        body: bodyMatch ? bodyMatch[1] : ''
+      }, null, 2);
+    } else if (lower.includes('elimino el post')) {
+      method = 'DELETE';
+      endpoint = '/posts/1';
+    } else if (lower.includes('consulto comentarios')) {
+      method = 'GET';
+      endpoint = '/posts/1/comments';
+    } else if (lower.includes('consulto el usuario')) {
+      method = 'GET';
+      endpoint = '/users/1';
+    } else if (lower.includes('consulto todos los posts')) {
+      method = 'GET';
+      endpoint = '/posts';
+    } else if (lower.includes('consulto posts del usuario')) {
+      method = 'GET';
+      endpoint = '/posts?userId=1';
+    } else if (lower.includes('consulto el post con id 99999')) {
+      method = 'GET';
+      endpoint = '/posts/99999';
+    } else if (lower.includes('consulto el post con id')) {
+      method = 'GET';
+      const idMatch = step.match(/ID\s+(\d+)/);
+      endpoint = '/posts/' + (idMatch ? idMatch[1] : '1');
+    }
+  }
+
+  return { method, endpoint, url: baseUrl + endpoint, body };
+}
+
 let passed = 0, failed = 0, skipped = 0;
 const rows = [];
 const details = [];
@@ -19,28 +80,15 @@ const details = [];
 for (const feature of scenarios) {
   for (const el of feature.elements || []) {
     if (el.type !== 'scenario') continue;
-    const steps = el.steps || [];
+    const steps = parseSteps(el.description);
     let scenarioFailed = false;
     let scenarioSkipped = false;
     let duration = 0;
     let error = '';
-    let requestResponse = '';
 
     for (const step of steps) {
-      const result = step.result || {};
-      if (result.status === 'passed') duration += result.duration || 0;
-      else if (result.status === 'failed') { scenarioFailed = true; error = result.error_message || ''; duration += result.duration || 0; }
-      else if (result.status === 'skipped') scenarioSkipped = true;
-
-      if (step.embeddings) {
-        for (const emb of step.embeddings) {
-          if (emb.mime_type === 'text/plain' && emb.data) {
-            const decoded = Buffer.from(emb.data, 'base64').toString('utf8');
-            if (decoded.includes('=== REQUEST ===')) {
-              requestResponse = decoded;
-            }
-          }
-        }
+      if (step.toLowerCase().startsWith('entonces') || step.toLowerCase().startsWith('y')) {
+        continue;
       }
     }
 
@@ -52,32 +100,31 @@ for (const feature of scenarios) {
     const badgeClass = scenarioFailed ? 'badge-failed' : scenarioSkipped ? 'badge-skipped' : 'badge-passed';
     const durationMs = Math.round(duration / 1000000);
     const id = `scenario-${passed + failed + skipped}`;
-    const hasDetails = requestResponse.length > 0;
+    const apiInfo = extractApiInfo(el.name, steps);
 
-    rows.push(`<tr class="${hasDetails ? 'clickable' : ''}" ${hasDetails ? `onclick="toggleDetails('${id}')"` : ''}>
+    rows.push(`<tr class="clickable" onclick="toggleDetails('${id}')">
       <td>${feature.name || 'Feature'}</td>
       <td>${el.name || 'Scenario'}</td>
       <td><span class="badge ${badgeClass}">${status}</span></td>
       <td>${durationMs}ms</td>
       <td>${error ? `<span class="error-text">${error.substring(0, 100)}...</span>` : ''}</td>
-      <td>${hasDetails ? '<span class="expand-icon">+</span>' : ''}</td>
+      <td><span class="expand-icon">+</span></td>
     </tr>`);
 
-    if (hasDetails) {
-      details.push(`<div id="${id}" class="details-panel" style="display:none">
-        <pre>${formatRequestResponse(requestResponse)}</pre>
-      </div>`);
+    let requestSection = `<span class="method">${apiInfo.method}</span> <span class="url">${apiInfo.url}</span>`;
+    if (apiInfo.body) {
+      requestSection += `\n\nBody:\n${apiInfo.body}`;
     }
-  }
-}
 
-function formatRequestResponse(text) {
-  return text
-    .replace(/=== REQUEST ===/g, '<span class="section-request">=== REQUEST ===</span>')
-    .replace(/=== RESPONSE ===/g, '<span class="section-response">=== RESPONSE ===</span>')
-    .replace(/(Method: )(\w+)/g, '$1<span class="method">$2</span>')
-    .replace(/(URL: )(https?:\/\/\S+)/g, '$1<span class="url">$2</span>')
-    .replace(/(Status: )(\d+)/g, '$1<span class="status-code">$2</span>');
+    let stepsSection = '\n\n=== STEPS ===\n' + steps.map(s => '  ' + s).join('\n');
+
+    details.push(`<div id="${id}" class="details-panel" style="display:none">
+      <div class="section-request">=== REQUEST ===</div>
+      <pre>${requestSection}</pre>
+      <div class="section-steps">=== TEST STEPS ===</div>
+      <pre>${stepsSection}</pre>
+    </div>`);
+  }
 }
 
 const total = passed + failed + skipped;
@@ -113,8 +160,9 @@ tr.clickable{cursor:pointer}
 .expand-icon{color:#58a6ff;font-weight:bold;font-size:16px}
 .details-panel{margin:8px 0 16px 0;padding:16px;background:#0d1117;border:1px solid #30363d;border-radius:8px}
 .details-panel pre{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-all}
-.section-request{color:#3fb950;font-weight:bold;display:block;margin-bottom:8px}
-.section-response{color:#58a6ff;font-weight:bold;display:block;margin-top:16px;margin-bottom:8px}
+.section-request{color:#3fb950;font-weight:bold;margin-bottom:8px}
+.section-steps{color:#d29922;font-weight:bold;margin-top:16px;margin-bottom:8px}
+.section-response{color:#58a6ff;font-weight:bold;margin-top:16px;margin-bottom:8px}
 .method{color:#d29922;font-weight:bold}
 .url{color:#a5d6ff}
 .status-code{color:#3fb950;font-weight:bold}

@@ -2,7 +2,6 @@ package com.karen.api.steps;
 
 import com.karen.api.tasks.JsonPlaceholderApi;
 import io.cucumber.java.en.*;
-import io.cucumber.java.Scenario;
 import io.restassured.response.Response;
 
 import java.util.List;
@@ -15,26 +14,6 @@ public class PetstoreSteps {
 
     private final JsonPlaceholderApi api = new JsonPlaceholderApi();
     private Response response;
-    private Scenario scenario;
-
-    @io.cucumber.java.Before
-    public void setUp(Scenario scenario) {
-        this.scenario = scenario;
-    }
-
-    private void attachRequestResponse(String method, String url, String requestBody) {
-        StringBuilder info = new StringBuilder();
-        info.append("=== REQUEST ===\n");
-        info.append("Method: ").append(method).append("\n");
-        info.append("URL: ").append(url).append("\n");
-        if (requestBody != null && !requestBody.isEmpty()) {
-            info.append("Body:\n").append(requestBody).append("\n");
-        }
-        info.append("\n=== RESPONSE ===\n");
-        info.append("Status: ").append(response.statusCode()).append("\n");
-        info.append("Body:\n").append(response.getBody().asPrettyString()).append("\n");
-        scenario.attach(info.toString(), "text/plain", method + " " + url);
-    }
 
     @Given("que la API base está configurada en {string}")
     public void configurarApi(String baseUrl) {
@@ -42,58 +21,47 @@ public class PetstoreSteps {
 
     @When("creo un post con title {string} y body {string} y userId {int}")
     public void crearPost(String title, String body, int userId) {
-        String jsonBody = String.format("{\"title\":\"%s\",\"body\":\"%s\",\"userId\":%d}", title, body, userId);
         response = api.crearPost(title, body, userId);
-        attachRequestResponse("POST", "https://jsonplaceholder.typicode.com/posts", jsonBody);
     }
 
     @When("consulto el post con ID {int}")
     public void consultarPost(int postId) {
         response = api.consultarPost(postId);
-        attachRequestResponse("GET", "https://jsonplaceholder.typicode.com/posts/" + postId, null);
     }
 
     @Given("que existe un post con ID {int}")
     public void existePost(int postId) {
         response = api.consultarPost(postId);
-        attachRequestResponse("GET", "https://jsonplaceholder.typicode.com/posts/" + postId, null);
     }
 
     @When("actualizo el post con title {string} y body {string}")
     public void actualizarPost(String title, String body) {
-        String jsonBody = String.format("{\"title\":\"%s\",\"body\":\"%s\"}", title, body);
         response = api.actualizarPost(1, title, body);
-        attachRequestResponse("PUT", "https://jsonplaceholder.typicode.com/posts/1", jsonBody);
     }
 
     @When("elimino el post por ID {int}")
     public void eliminarPost(int postId) {
         response = api.eliminarPost(postId);
-        attachRequestResponse("DELETE", "https://jsonplaceholder.typicode.com/posts/" + postId, null);
     }
 
     @When("consulto todos los posts")
     public void consultarTodosPosts() {
         response = api.consultarTodosPosts();
-        attachRequestResponse("GET", "https://jsonplaceholder.typicode.com/posts", null);
     }
 
     @When("consulto posts del usuario {int}")
     public void consultarPostsPorUsuario(int userId) {
         response = api.consultarPostsPorUsuario(userId);
-        attachRequestResponse("GET", "https://jsonplaceholder.typicode.com/posts?userId=" + userId, null);
     }
 
     @When("consulto comentarios del post {int}")
     public void consultarComentarios(int postId) {
         response = api.consultarComentarios(postId);
-        attachRequestResponse("GET", "https://jsonplaceholder.typicode.com/posts/" + postId + "/comments", null);
     }
 
     @When("consulto el usuario con ID {int}")
     public void consultarUsuario(int userId) {
         response = api.consultarUsuario(userId);
-        attachRequestResponse("GET", "https://jsonplaceholder.typicode.com/users/" + userId, null);
     }
 
     @Then("el post es creado exitosamente")
