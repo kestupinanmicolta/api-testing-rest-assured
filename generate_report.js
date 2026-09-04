@@ -22,9 +22,13 @@ function extractApiInfo(scenarioName, steps) {
   let method = 'GET';
   let endpoint = '/';
   let body = null;
+  let expectedStatus = null;
+  let responseValidations = [];
 
   for (const step of steps) {
     const lower = step.toLowerCase();
+
+    // Request
     if (lower.includes('creo un post')) {
       method = 'POST';
       endpoint = '/posts';
@@ -68,9 +72,47 @@ function extractApiInfo(scenarioName, steps) {
       const idMatch = step.match(/ID\s+(\d+)/);
       endpoint = '/posts/' + (idMatch ? idMatch[1] : '1');
     }
+
+    // Response
+    if (lower.includes('status code es')) {
+      const statusMatch = step.match(/(\d+)/);
+      if (statusMatch) expectedStatus = parseInt(statusMatch[1]);
+    }
+    if (lower.includes('post es creado exitosamente')) {
+      expectedStatus = 201;
+      responseValidations.push('id > 0');
+    }
+    if (lower.includes('post tiene title no vacío')) {
+      responseValidations.push('title no está vacío');
+    }
+    if (lower.includes('post tiene title')) {
+      const titleMatch = step.match(/title\s+"([^"]+)"/);
+      if (titleMatch) responseValidations.push('title = "' + titleMatch[1] + '"');
+    }
+    if (lower.includes('cada post tiene campos válidos')) {
+      responseValidations.push('campos: id, title, body, userId');
+    }
+    if (lower.includes('cada post tiene userId')) {
+      const userIdMatch = step.match(/userId\s+(\d+)/);
+      if (userIdMatch) responseValidations.push('userId = ' + userIdMatch[1]);
+    }
+    if (lower.includes('respuesta contiene al menos')) {
+      const countMatch = step.match(/(\d+)/);
+      if (countMatch) responseValidations.push('respuesta tiene >= ' + countMatch[1] + ' elementos');
+    }
+    if (lower.includes('campo title no está vacío')) {
+      responseValidations.push('title no está vacío');
+    }
+    if (lower.includes('usuario tiene name no vacío')) {
+      responseValidations.push('name no está vacío');
+    }
+    if (lower.includes('post contiene los campos')) {
+      const fieldsMatch = step.match(/campos:\s*(.+)/);
+      if (fieldsMatch) responseValidations.push('campos: ' + fieldsMatch[1]);
+    }
   }
 
-  return { method, endpoint, url: baseUrl + endpoint, body };
+  return { method, endpoint, url: baseUrl + endpoint, body, expectedStatus, responseValidations };
 }
 
 let passed = 0, failed = 0, skipped = 0;
@@ -85,12 +127,6 @@ for (const feature of scenarios) {
     let scenarioSkipped = false;
     let duration = 0;
     let error = '';
-
-    for (const step of steps) {
-      if (step.toLowerCase().startsWith('entonces') || step.toLowerCase().startsWith('y')) {
-        continue;
-      }
-    }
 
     if (scenarioFailed) failed++;
     else if (scenarioSkipped) skipped++;
@@ -116,11 +152,21 @@ for (const feature of scenarios) {
       requestSection += `\n\nBody:\n${apiInfo.body}`;
     }
 
-    let stepsSection = '\n\n=== STEPS ===\n' + steps.map(s => '  ' + s).join('\n');
+    let responseSection = '';
+    if (apiInfo.expectedStatus) {
+      responseSection += `Status: ${apiInfo.expectedStatus}`;
+    }
+    if (apiInfo.responseValidations.length > 0) {
+      responseSection += '\n\nValidaciones:\n' + apiInfo.responseValidations.map(v => '  - ' + v).join('\n');
+    }
+
+    let stepsSection = steps.map(s => '  ' + s).join('\n');
 
     details.push(`<div id="${id}" class="details-panel" style="display:none">
       <div class="section-request">=== REQUEST ===</div>
       <pre>${requestSection}</pre>
+      <div class="section-response">=== RESPONSE ===</div>
+      <pre>${responseSection || 'Sin validación de response'}</pre>
       <div class="section-steps">=== TEST STEPS ===</div>
       <pre>${stepsSection}</pre>
     </div>`);
@@ -161,8 +207,8 @@ tr.clickable{cursor:pointer}
 .details-panel{margin:8px 0 16px 0;padding:16px;background:#0d1117;border:1px solid #30363d;border-radius:8px}
 .details-panel pre{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-all}
 .section-request{color:#3fb950;font-weight:bold;margin-bottom:8px}
-.section-steps{color:#d29922;font-weight:bold;margin-top:16px;margin-bottom:8px}
 .section-response{color:#58a6ff;font-weight:bold;margin-top:16px;margin-bottom:8px}
+.section-steps{color:#d29922;font-weight:bold;margin-top:16px;margin-bottom:8px}
 .method{color:#d29922;font-weight:bold}
 .url{color:#a5d6ff}
 .status-code{color:#3fb950;font-weight:bold}
